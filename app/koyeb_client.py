@@ -5,51 +5,41 @@ from requests.exceptions import RequestException
 class KoyebManager:
     def __init__(self):
         self.base_url = "https://app.koyeb.com/v1"
-        self.accounts = self._load_accounts()
+        self.services = self._load_services()
 
-    def _load_accounts(self):
-        accounts = {}
-        for var in os.environ:
-            if var.startswith("KOYEB_") and var.endswith("_KEY"):
-                account_id = var[6:-4].lower()
-                accounts[account_id] = {
-                    'key': os.getenv(var),
-                    'service': os.getenv(f"KOYEB_{account_id.upper()}_SERVICE")
-                }
-        return accounts
+    def _load_services(self):
+        return {
+            acc: {
+                'key': os.getenv(f"KOYEB_{acc.upper()}_KEY"),
+                'service_id': os.getenv(f"KOYEB_{acc.upper()}_SERVICE")
+            }
+            for acc in os.getenv('KOYEB_ACCOUNTS', '').split(',')
+        }
 
-    def _make_request(self, method, endpoint, account, data=None):
+    def _make_request(self, method, endpoint, account):
         try:
-            headers = {'Authorization': f'Bearer {self.accounts[account]["key"]}'}
+            headers = {'Authorization': f'Bearer {self.services[account]["key"]}'}
             response = requests.request(
                 method,
                 f"{self.base_url}{endpoint}",
                 headers=headers,
-                json=data,
                 timeout=10
             )
             response.raise_for_status()
             return response.json()
-        except KeyError:
-            return "Error: Account not found"
-        except RequestException as e:
-            return f"API Error: {str(e)}"
         except Exception as e:
-            return f"Unexpected error: {str(e)}"
+            return f"Error: {str(e)}"
 
     def get_logs(self, account):
-        if account not in self.accounts:
-            return "Invalid account"
-        result = self._make_request('GET', f"/services/{self.accounts[account]['service']}/logs", account)
-        return result[:4000] if isinstance(result, str) else str(result)
+        return self._make_request(
+            'GET', 
+            f"/services/{self.services[account]['service_id']}/logs", 
+            account
+        )
 
     def redeploy(self, account):
-        if account not in self.accounts:
-            return "Invalid account"
-        return self._make_request('POST', f"/services/{self.accounts[account]['service']}/redeploy", account)
-
-    def list_services(self):
-        services = []
-        for account, config in self.accounts.items():
-            services.append(f"{account}: {config['service']}")
-        return "Configured Services:\n" + "\n".join(services) if services else "No services configured"
+        return self._make_request(
+            'POST', 
+            f"/services/{self.services[account]['service_id']}/redeploy", 
+            account
+        )
