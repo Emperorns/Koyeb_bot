@@ -1,11 +1,16 @@
+# app/auth.py
 import os
 from flask import request
 
-def authenticate_request(req):
-    # Verify Telegram secret token
-    if req.headers.get('X-Telegram-Secret') != os.getenv('TELEGRAM_WEBHOOK_SECRET'):
-        return False
+def authenticate_request():
+    """Verify only allowed user can interact with the bot"""
+    try:
+        # Get chat ID from incoming request
+        chat_id = request.json['message']['chat']['id']
+        allowed_id = os.getenv('ALLOWED_USER_ID')
         
-    # Verify allowed user ID
-    chat_id = req.json.get('message', {}).get('chat', {}).get('id')
-    return str(chat_id) == os.getenv('ALLOWED_USER_ID')
+        return str(chat_id) == allowed_id
+        
+    except KeyError:
+        # Missing required fields in request
+        return False
