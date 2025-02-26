@@ -1,3 +1,4 @@
+# app/auth.py
 import os
 import logging
 from flask import request
@@ -8,6 +9,11 @@ def authenticate_request(req):
         # Log the incoming request for debugging
         logging.info(f"Incoming request: {req.json}")
         
+        # Check if the request contains a message
+        if 'message' not in req.json:
+            logging.warning("Request does not contain a 'message' key")
+            return False
+            
         # Get the chat ID from the incoming request
         chat_id = req.json['message']['chat']['id']
         
