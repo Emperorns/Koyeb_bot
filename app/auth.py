@@ -1,18 +1,13 @@
-# app/auth.py
 import os
+import logging
 from flask import request
 
 def authenticate_request(req):
-    """
-    Verify if the incoming request is authorized.
-    
-    Args:
-        req: Flask request object containing the Telegram update
-        
-    Returns:
-        bool: True if authorized, False otherwise
-    """
+    """Verify if the incoming request is authorized."""
     try:
+        # Log the incoming request for debugging
+        logging.info(f"Incoming request: {req.json}")
+        
         # Get the chat ID from the incoming request
         chat_id = req.json['message']['chat']['id']
         
@@ -23,11 +18,8 @@ def authenticate_request(req):
         return str(chat_id) == allowed_id
         
     except KeyError as e:
-        # Log missing fields in the request
-        print(f"Missing key in request: {e}")
+        logging.error(f"Missing key in request: {e}")
         return False
-        
     except Exception as e:
-        # Log any other unexpected errors
-        print(f"Authentication error: {e}")
+        logging.error(f"Authentication error: {e}")
         return False
